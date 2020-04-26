@@ -1,10 +1,10 @@
 package main
 
 import (
-	"autoComplete/autocomplete"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"github.com/querysearch/autocomplete"
 	"io"
 	"net/http"
 	_ "net/http/pprof"
@@ -199,5 +199,8 @@ func FilterOutGooglePoint(results []*autocomplete.POIWithScore) []*autocomplete.
 
 func main(){
 	http.HandleFunc("/fuzzysearch", fuzzySearch)
-	_ = http.ListenAndServe("127.0.0.1:8199", nil)
+	err := http.ListenAndServe("127.0.0.1:8199", nil)
+	if err != nil {
+		fmt.Println("Error:",err)
+	}
 }
