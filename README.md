@@ -1,4 +1,5 @@
 # query search
+参考论文： Efficient Interactive Fuzzy Keyword Search 
 
 # how to run
 1. 变跟 main.go 中的 FilePath 为你的数据文件路径。
