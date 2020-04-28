@@ -62,17 +62,18 @@ func (t *Trie) MultiFuzzySearchV1(prefixKeywords []Prefix,fuzziness int) []*POIW
 	candidateNodes := activeNodes[miniIdx]
 
 	// map[prefix]similarPrfix
-	prefixGroup := make([][]*PrefixCouple,prefixNum)
+	prefixGroup := make([]map[Prefix]*PrefixCouple,prefixNum)
 	for i,prefix := range prefixKeywords {
 		if i == prefixNum - 1{
 			prefixGroup[i]= t.GetSimilarPrefix(prefix,activeNodes[i],true)
 		}else{
 			prefixGroup[i]= t.GetSimilarPrefix(prefix,activeNodes[i],false)
 		}
+		fmt.Println(prefix,"Get similar prefix:",len(prefixGroup[i]))
 	}
 
 	str, _ := json.Marshal(candidateNodes)
-	fmt.Println("get final candidate nodes: ",string(str))
+	fmt.Println("candidate Nodes:",len(candidateNodes),string(str))
 
 	// rank the record id and get the final poi id
 	results := t.Rank(candidateNodes,prefixGroup,3,10)
@@ -80,21 +81,20 @@ func (t *Trie) MultiFuzzySearchV1(prefixKeywords []Prefix,fuzziness int) []*POIW
 	return results
 }
 
-func (t *Trie) GetSimilarPrefix(originPrefix Prefix,activeNodes []*TrieNode,isPartialMatch bool) []*PrefixCouple {
-	similarPrefix := make([]*PrefixCouple,0,len(activeNodes))
+func (t *Trie) GetSimilarPrefix(originPrefix Prefix,activeNodes []*TrieNode,isPartialMatch bool) map[Prefix]*PrefixCouple {
+	similarPrefix := make(map[Prefix]*PrefixCouple,len(activeNodes))
 	for _,node := range activeNodes {
-		similarPrefix = append(similarPrefix,
-			&PrefixCouple{
+		similarPrefix[node.Id] = &PrefixCouple{
 				OriginPrefix:originPrefix,
 				SimilarPrefix:node.Id,
 				PartialMatch: isPartialMatch,
-				SimiScore: simiDistance(originPrefix,node.Id)})
+				SimiScore: simiDistance(originPrefix,node.Id)}
 	}
 	return similarPrefix
 }
 
 // todo: early terminate the record traverse if the user only type few letters. it can cause much unnecessary load.
-func (t *Trie) Rank(activeNodes []*TrieNode,prefixGroup [][]*PrefixCouple,RECORD_LIMIT_N, POI_LIMIT_N int) []*POIWithScore {
+func (t *Trie) Rank(activeNodes []*TrieNode,prefixGroup []map[Prefix]*PrefixCouple,RECORD_LIMIT_N, POI_LIMIT_N int) []*POIWithScore {
 
 	recordScoreDetail := map[RecordID]*RecordScore{}
 
@@ -103,7 +103,7 @@ func (t *Trie) Rank(activeNodes []*TrieNode,prefixGroup [][]*PrefixCouple,RECORD
 		exist := map[RecordID]bool{}
 		for _,recordID := range node.value.records {
 			if exist[recordID] {
-				fmt.Println("duplicate record:",recordID)
+				//fmt.Println("duplicate record:",recordID)
 			}else{
 				exist[recordID] = true
 			}
@@ -176,7 +176,7 @@ func (t *Trie) Rank(activeNodes []*TrieNode,prefixGroup [][]*PrefixCouple,RECORD
 	return poiScoreArray
 }
 
-func (t *Trie) isAcceptRecord(record *Record, prefixGroup [][]*PrefixCouple ) (isAccepted bool,score *RecordScore) {
+func (t *Trie) isAcceptRecord(record *Record, prefixGroup []map[Prefix]*PrefixCouple ) (isAccepted bool,score *RecordScore) {
 	score = &RecordScore{}
 
 
@@ -184,19 +184,19 @@ func (t *Trie) isAcceptRecord(record *Record, prefixGroup [][]*PrefixCouple ) (i
 	var Rule2_FuzzyPrefixPositonMatch  bool = true
 
 	// todo: for now , only consider shortest list of records.  but we might need to take the non-shortest list of records into consider.
-	for prefixPoisition, similarPrefixes  := range prefixGroup {
+	for prefixPoisition, similarPrefixMap  := range prefixGroup {
 		var bestPrefix *PrefixCouple
 		var bestScore float64
 		var meetPrefix bool
 
-		for _,prefixCp := range similarPrefixes {
-			simiPrefix := prefixCp.SimilarPrefix
-			if _,exist := record.Value.WordPositionMap[simiPrefix]; exist {
+		// find bestPrefix
+		for _,word := range record.Value.Words {
+			if prefixCp, exist := similarPrefixMap[word]; exist {
 				if !meetPrefix {
 					meetPrefix = true
 					bestScore = prefixCp.SimiScore
 					bestPrefix = prefixCp
-				} else if bestScore < prefixCp.SimiScore {
+				}else if bestScore < prefixCp.SimiScore{
 					bestScore = prefixCp.SimiScore
 					bestPrefix = prefixCp
 				}
@@ -232,6 +232,12 @@ func (t *Trie) isAcceptRecord(record *Record, prefixGroup [][]*PrefixCouple ) (i
 	if Rule1_PrefixPositionMatch {
 		score.PriorityLevel = Max(score.PriorityLevel,2)
 	}
+
+	// only for demo, only retain Priority > 0
+	if score.PriorityLevel == 0 {
+		return false,nil
+	}
+
 	return true,score
 }
 

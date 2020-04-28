@@ -18,9 +18,9 @@ var WordCnt = map[Prefix] int64{}
 type Prefix string
 
 func NewPrefix(str string) (Prefix,error) {
-	for ch := range str {
+	for _,ch := range str {
 		if ch > 256 {
-			return "",errors.New("not in asical code")
+			return "",errors.New("not in asical code:" + str)
 		}
 	}
 	return Prefix(str),nil

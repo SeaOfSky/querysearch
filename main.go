@@ -46,6 +46,8 @@ func buildIndex(filepath string)  {
 
 	var totalRecordCount int64 = 0
 
+	var inValidRecord int64 = 0
+
 	for {
 		record, err := reader.Read()
 		if err == io.EOF {
@@ -92,9 +94,12 @@ func buildIndex(filepath string)  {
 				autocomplete.RecordDataBase[autocomplete.RecordID(query)] = autocomplete.NewRecord(autocomplete.RecordID(query),newRecordVal,queryCnt)
 			}
 		}else{
-			fmt.Println("fail:",record,len(record))
+			//fmt.Println("fail:",record,len(record))
+			inValidRecord ++
 		}
 	}
+
+	fmt.Println("Filter out invalid record (non-english-letter) : ",inValidRecord)
 
 
 	autocomplete.MeanRecordSelectinCnt = totalRecordCount / int64(len(autocomplete.RecordDataBase))
@@ -124,6 +129,13 @@ func isQueryAccepted(query string) (accepted bool,prefixes []autocomplete.Prefix
 
 
 func fuzzySearch(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+			_, _ = w.Write([]byte(r.(error).Error()))
+			return
+		}
+	}()
 	var isSkipGoogle bool
 	var fuzziness int64
 	var err error
@@ -166,7 +178,8 @@ func fuzzySearch(w http.ResponseWriter, r *http.Request) {
 			// return error
 			w.WriteHeader(200)
 			w.Write([]byte(err.Error()))
-		}else{
+			return
+		}else if len(prefix) > 0{
 			SearchPrefix = append(SearchPrefix, prefix)
 		}
 	}
