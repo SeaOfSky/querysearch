@@ -17,8 +17,11 @@ const FilePath = "./data/entity_combine_root_selection.csv"
 
 type SearchResult struct {
 	TotalNumber int
+	Version string
 	Result []*autocomplete.POIWithScore
 }
+
+const AppVersionNumber = "0.01"
 
 var Searcher = autocomplete.NewTrie()
 
@@ -192,7 +195,7 @@ func fuzzySearch(w http.ResponseWriter, r *http.Request) {
 
 	length := len(results)
 	results = results[:autocomplete.MinInts(50, len(results))]
-	response := SearchResult{TotalNumber: length, Result: results}
+	response := SearchResult{TotalNumber: length, Version: AppVersionNumber, Result: results}
 
 	byteResult, _ := json.Marshal(response)
 	w.Header().Add("Content-Type","application/json; charset=utf-8")

@@ -182,6 +182,8 @@ func (t *Trie) isAcceptRecord(record *Record, prefixGroup []map[Prefix]*PrefixCo
 
 	var Rule1_PrefixPositionMatch bool = true
 	var Rule2_FuzzyPrefixPositonMatch  bool = true
+	rule3 := NewRuler3()
+	rule4 := NewRuler4()
 
 	// todo: for now , only consider shortest list of records.  but we might need to take the non-shortest list of records into consider.
 	for prefixPoisition, similarPrefixMap  := range prefixGroup {
@@ -218,6 +220,8 @@ func (t *Trie) isAcceptRecord(record *Record, prefixGroup []map[Prefix]*PrefixCo
 			if Rule2_FuzzyPrefixPositonMatch {
 				Rule2_FuzzyPrefixPositonMatch = IsMatchRule2(record,bestPrefix,prefixPoisition)
 			}
+			rule3.CheckRule(record,bestPrefix,prefixPoisition)
+			rule4.CheckRule(record,bestPrefix,prefixPoisition)
 		}
 
 		// todo: optimize the score computing
@@ -225,12 +229,19 @@ func (t *Trie) isAcceptRecord(record *Record, prefixGroup []map[Prefix]*PrefixCo
 		score.TotalScore += p_score
 		score.SubScore = append(score.SubScore,subScore)
 	}
-	if Rule2_FuzzyPrefixPositonMatch {
+
+	// set priorityLevel according to rules
+	if rule4.IsMatch() {
 		score.PriorityLevel = Max(score.PriorityLevel,1)
 	}
-	// set priorityLevel according to rules
-	if Rule1_PrefixPositionMatch {
+	if rule3.IsMatch() {
 		score.PriorityLevel = Max(score.PriorityLevel,2)
+	}
+	if Rule2_FuzzyPrefixPositonMatch {
+		score.PriorityLevel = Max(score.PriorityLevel,3)
+	}
+	if Rule1_PrefixPositionMatch {
+		score.PriorityLevel = Max(score.PriorityLevel,4)
 	}
 
 	// only for demo, only retain Priority > 0
@@ -382,7 +393,7 @@ func IsMatchRule1(record *Record,bestPrefix *PrefixCouple,prefixPoisition int) b
 	return true
 }
 
-// Rule 1 : the best prefix can have fuzzy word.
+// Rule 2 : the best prefix can have fuzzy word.
 // 1. the position of each word of the query must be matched with the ones of the record.
 func IsMatchRule2(record *Record,bestPrefix *PrefixCouple,prefixPoisition int) bool{
 	if record.Value.WordPositionMap[bestPrefix.SimilarPrefix] != prefixPoisition {
