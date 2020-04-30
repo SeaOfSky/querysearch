@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/querysearch/autocomplete"
 	"net/http"
-	"sort"
 )
 
 var LookUpDataBase = map[string]*POIProfle{}
@@ -14,7 +13,7 @@ type POIProfle struct {
 	POIName string
 	TotalCount int64
 	TotalQuery int64
-	Querys []*POIQueryConfidence
+	Querys map[autocomplete.RecordID]*POIQueryConfidence
 }
 
 type POIQueryConfidence struct {
@@ -46,22 +45,24 @@ func BuildLookUpDataBase() {
 		queryCnt := rValue.SelectionCnt
 		for _,poi := range rValue.Value.Pois {
 			if val, exist := LookUpDataBase[poi.POIID]; exist {
-				val.Querys = append(val.Querys, &POIQueryConfidence{
+				val.Querys[rID] = &POIQueryConfidence{
 					Query: rID,
 					QueryCount: queryCnt,
 					Confidence: poi.Confidence,
 					POICount: int64( float64(queryCnt) * poi.Confidence),
-				})
+				}
 			}else {
 				LookUpDataBase[poi.POIID] = &POIProfle{
 					POIID: poi.POIID,
 					POIName: poi.POIName,
-					Querys: []*POIQueryConfidence{ {
-						Query: rID,
-						QueryCount: queryCnt,
-						Confidence: poi.Confidence,
-						POICount: int64( float64(queryCnt) * poi.Confidence),
-					},},
+					Querys: map[autocomplete.RecordID]*POIQueryConfidence{
+						rID: {
+							Query: rID,
+							QueryCount: queryCnt,
+							Confidence: poi.Confidence,
+							POICount: int64( float64(queryCnt) * poi.Confidence),
+						},
+					},
 				}
 			}
 		}
@@ -90,7 +91,7 @@ func Lookup(w http.ResponseWriter, r *http.Request){
 	}
 	poiID := texts[0]
 	response := LookUpDataBase[poiID]
-	sort.Sort(sorter(response.Querys))
+	//sort.Sort(sorter(response.Querys))
 	byteResult, _ := json.Marshal(response)
 	w.Header().Add("Content-Type","application/json; charset=utf-8")
 	w.Write(byteResult)

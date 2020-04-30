@@ -14,7 +14,6 @@ import (
 	"strings"
 )
 
-//const FilePath = "/home/wilson.muktar/data/entity_combine_root_selection.csv"
 const FilePath = "./data/entity_combine_root_selection.csv"
 
 type SearchResult struct {
@@ -23,7 +22,7 @@ type SearchResult struct {
 	Result []*autocomplete.POIWithScore
 }
 
-const AppVersionNumber = "0.01"
+const AppVersionNumber = "0.03"
 
 var Searcher = autocomplete.NewTrie()
 
@@ -197,6 +196,8 @@ func fuzzySearch(w http.ResponseWriter, r *http.Request) {
 		results = FilterOutGooglePoint(results)
 	}
 
+	results = FilterOutNoisy(results)
+
 	length := len(results)
 	results = results[:autocomplete.MinInts(50, len(results))]
 	response := SearchResult{TotalNumber: length, Version: AppVersionNumber, Result: results}
@@ -204,6 +205,21 @@ func fuzzySearch(w http.ResponseWriter, r *http.Request) {
 	byteResult, _ := json.Marshal(response)
 	w.Header().Add("Content-Type","application/json; charset=utf-8")
 	w.Write(byteResult)
+}
+
+func FilterOutNoisy(results []*autocomplete.POIWithScore) []*autocomplete.POIWithScore {
+	newResults := make([]*autocomplete.POIWithScore,0,len(results))
+	for _,poi := range results {
+		if poiProfile,ok := lookup.LookUpDataBase[poi.Poi.POIID]; ok {
+			if query, ok := poiProfile.Querys[poi.RecordID]; ok {
+				if query.Confidence < 0.3 && query.InvertedConfidence < 0.05 {
+					continue
+				}
+			}
+		}
+		newResults = append(newResults,poi)
+	}
+	return newResults
 }
 
 func FilterOutGooglePoint(results []*autocomplete.POIWithScore) []*autocomplete.POIWithScore {
