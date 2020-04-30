@@ -2,6 +2,17 @@ package autocomplete
 
 import "math"
 
+func ComputeFinalScore(recordScore *RecordScore,poi *POIDetail) float64 {
+	recordFinalScore := recordScore.TotalScore * poi.Confidence
+	poiScore :=  ComputePOIScore(poi)
+	return recordFinalScore + poiScore
+}
+
+func ComputePOIScore(poi *POIDetail) float64 {
+	score := math.Log2(float64(poi.SelectionCnt) / float64(MeanRecordSelectinCnt) + 1)
+	return score
+}
+
 func ComputePrefixMatchScore(originPrefixPosition int,bestPrefix *PrefixCouple, record *Record) (p_score float64,scoreDetail *SubRecordScore)  {
 	scoreDetail = &SubRecordScore{}
 	p_score = 0.0

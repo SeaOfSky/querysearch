@@ -126,40 +126,17 @@ func (t *Trie) Rank(activeNodes []*TrieNode,prefixGroup []map[Prefix]*PrefixCoup
 	for recordID,recordScore := range recordScoreDetail {
 		recordDetail := RecordDataBase[recordID]
 		for _,poi := range recordDetail.Value.Pois {
+			newScore := ComputeFinalScore(recordScore,poi)
 			if existPOIScore,ok := uniquePOI[poi.POIID]; ok {
 				if recordScore.PriorityLevel > existPOIScore.PriorityLevel {
-					uniquePOI[poi.POIID] = &POIWithScore{
-						Score:recordScore.TotalScore * poi.Confidence,
-						Poi: poi,
-						POIScore: poi.Confidence,
-						RecordScore: recordScore.TotalScore,
-						RecordScoreDetail: recordScore,
-						RecordID:recordID,
-						PriorityLevel: recordScore.PriorityLevel,
-					}
-				} else if recordScore.PriorityLevel == existPOIScore.PriorityLevel && recordScore.TotalScore * poi.Confidence > existPOIScore.Score {
-					uniquePOI[poi.POIID] = &POIWithScore{
-						Score:recordScore.TotalScore * poi.Confidence,
-						Poi: poi,
-						POIScore: poi.Confidence,
-						RecordScore: recordScore.TotalScore,
-						RecordScoreDetail: recordScore,
-						RecordID:recordID,
-						PriorityLevel: recordScore.PriorityLevel,
-					}
+					uniquePOI[poi.POIID] = NewPOIWithScore(recordID,recordScore,poi)
+				} else if recordScore.PriorityLevel == existPOIScore.PriorityLevel && newScore > existPOIScore.Score {
+					uniquePOI[poi.POIID] = NewPOIWithScore(recordID,recordScore,poi)
 				}else {
 					//fmt.Println("remove duplicate poi", poi.POIID , " in record:", r.id)
 				}
 			}else{
-				uniquePOI[poi.POIID] = &POIWithScore{
-					Score:recordScore.TotalScore * poi.Confidence,
-					Poi: poi,
-					POIScore: poi.Confidence,
-					RecordScore: recordScore.TotalScore,
-					RecordScoreDetail: recordScore,
-					RecordID:recordID,
-					PriorityLevel: recordScore.PriorityLevel,
-				}
+				uniquePOI[poi.POIID] = NewPOIWithScore(recordID,recordScore,poi)
 			}
 		}
 	}

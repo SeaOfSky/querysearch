@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/querysearch/autocomplete"
+	"github.com/querysearch/lookup"
 	"io"
 	"net/http"
 	_ "net/http/pprof"
@@ -13,6 +14,7 @@ import (
 	"strings"
 )
 
+//const FilePath = "/home/wilson.muktar/data/entity_combine_root_selection.csv"
 const FilePath = "./data/entity_combine_root_selection.csv"
 
 type SearchResult struct {
@@ -115,6 +117,8 @@ func buildIndex(filepath string)  {
 			Searcher.Root.AddNode(keyword,rID)
 		}
 	}
+
+	lookup.BuildLookUpDataBase()
 }
 
 func isQueryAccepted(query string) (accepted bool,prefixes []autocomplete.Prefix) {
@@ -215,6 +219,7 @@ func FilterOutGooglePoint(results []*autocomplete.POIWithScore) []*autocomplete.
 
 func main(){
 	http.HandleFunc("/fuzzysearch", fuzzySearch)
+	http.HandleFunc("/lookup", lookup.Lookup)
 	err := http.ListenAndServe("127.0.0.1:8199", nil)
 	if err != nil {
 		fmt.Println("Error:",err)

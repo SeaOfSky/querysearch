@@ -111,6 +111,20 @@ type POIWithScore struct {
 	RecordScoreDetail *RecordScore
 }
 
+func NewPOIWithScore(recordID RecordID,recordScore *RecordScore, poi *POIDetail) *POIWithScore {
+	recordFinalScore := recordScore.TotalScore * poi.Confidence
+	poiScore :=  ComputePOIScore(poi)
+	return &POIWithScore{
+		Score: recordFinalScore + poiScore,
+		Poi: poi,
+		POIScore: poiScore,
+		RecordScore: recordFinalScore,
+		RecordScoreDetail: recordScore,
+		RecordID: recordID,
+		PriorityLevel: recordScore.PriorityLevel,
+	}
+}
+
 // POISorter ...
 type POISorter []*POIWithScore
 

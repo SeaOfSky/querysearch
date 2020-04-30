@@ -11,3 +11,8 @@ example: http://localhost:8199/fuzzysearch?s=woods&f=1&skip=false
 - s: 搜索字符
 - f: fuzziness
 - skip: false是在结果中不过滤google点，true为过滤。
+
+# score computing 
+- RecordScore = RecordScoreDetail.TotalScore * Poi.Confidence
+- POIScore = log2 ( Poi.SelectionCnt / mean selection count )
+- Score = RecordScore + POIScore
