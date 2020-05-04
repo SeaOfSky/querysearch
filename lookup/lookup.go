@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/querysearch/autocomplete"
 	"net/http"
+	"sort"
 )
 
 var LookUpDataBase = map[string]*POIProfle{}
@@ -22,6 +23,14 @@ type POIQueryConfidence struct {
 	POICount int64
 	Confidence float64
 	InvertedConfidence float64
+}
+
+type LookUpResponse struct {
+	POIID string
+	POIName string
+	TotalCount int64
+	TotalQuery int64
+	Querys []*POIQueryConfidence
 }
 
 // RecordSorter ...
@@ -90,8 +99,18 @@ func Lookup(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	poiID := texts[0]
-	response := LookUpDataBase[poiID]
-	//sort.Sort(sorter(response.Querys))
+	results := LookUpDataBase[poiID]
+
+	response := LookUpResponse{}
+	response.POIID = results.POIID
+	response.TotalQuery = results.TotalQuery
+	response.POIName = results.POIName
+	response.TotalCount = results.TotalCount
+	for _,query := range results.Querys {
+		response.Querys = append(response.Querys,query)
+	}
+
+	sort.Sort(sorter(response.Querys))
 	byteResult, _ := json.Marshal(response)
 	w.Header().Add("Content-Type","application/json; charset=utf-8")
 	w.Write(byteResult)

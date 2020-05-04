@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 )
-
 const FilePath = "./data/entity_combine_root_selection.csv"
 
 type SearchResult struct {
