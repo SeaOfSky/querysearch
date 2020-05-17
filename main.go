@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 )
+
+//const FilePath = "/home/wilson.muktar/data/entity_combine_root_selection.csv"
 const FilePath = "./data/entity_combine_root_selection.csv"
 
 type SearchResult struct {
@@ -134,10 +136,11 @@ func isQueryAccepted(query string) (accepted bool,prefixes []autocomplete.Prefix
 
 
 func fuzzySearch(w http.ResponseWriter, r *http.Request) {
+	defaultResponse,_ := json.Marshal(SearchResult{Version: AppVersionNumber,Result: []*autocomplete.POIWithScore{}})
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
-			_, _ = w.Write([]byte(r.(error).Error()))
+			w.Write(defaultResponse)
 			return
 		}
 	}()
@@ -148,7 +151,8 @@ func fuzzySearch(w http.ResponseWriter, r *http.Request) {
 
 	texts := args["s"]
 	if len(texts) == 0 {
-		_, _ = w.Write([]byte("text is empty!"))
+		fmt.Println("text is empty!")
+		w.Write(defaultResponse)
 		return
 	}
 	searchText := texts[0]
@@ -176,17 +180,13 @@ func fuzzySearch(w http.ResponseWriter, r *http.Request) {
 		multiKeywords = []string{""}
 	}
 
-	SearchPrefix := []autocomplete.Prefix{}
-	for _,keyword := range multiKeywords {
-		tmp := strings.Trim(keyword," ")
-		if prefix,err := autocomplete.NewPrefix(tmp); err != nil {
-			// return error
-			w.WriteHeader(200)
-			w.Write([]byte(err.Error()))
-			return
-		}else if len(prefix) > 0{
-			SearchPrefix = append(SearchPrefix, prefix)
-		}
+	isAccept, SearchPrefix:= isQueryAccepted(searchText)
+	if !isAccept {
+		// return error
+		w.WriteHeader(200)
+		fmt.Println("query has invaild character!")
+		w.Write(defaultResponse)
+		return
 	}
 
 	results := Searcher.MultiFuzzySearchV1(SearchPrefix, int(fuzziness))
@@ -235,7 +235,7 @@ func FilterOutGooglePoint(results []*autocomplete.POIWithScore) []*autocomplete.
 func main(){
 	http.HandleFunc("/fuzzysearch", fuzzySearch)
 	http.HandleFunc("/lookup", lookup.Lookup)
-	err := http.ListenAndServe("127.0.0.1:8199", nil)
+	err := http.ListenAndServe("0.0.0.0:8199", nil)
 	if err != nil {
 		fmt.Println("Error:",err)
 	}

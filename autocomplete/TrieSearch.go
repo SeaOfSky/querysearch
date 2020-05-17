@@ -294,6 +294,7 @@ func (t *Trie) SingleFuzzySearch(prefix Prefix, prefixProtectN int,fuzziness int
 				}
 				// substitute
 				updateDistMap(newEditDistMap,child.Id,curNodeDist + 1)
+				nextActiveNodes = append(nextActiveNodes,child)
 			}
 		}
 
